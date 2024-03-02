@@ -1,84 +1,111 @@
 import { NextResponse } from "next/server";
-
 import getCurrentUser from "@/app/actions/getCurrentUser";
-import { pusherServer } from '@/app/libs/pusher'
+import { pusherServer } from "@/app/libs/pusher";
 import prisma from "@/app/libs/prismadb";
+import axios, { AxiosError } from "axios";
 
-export async function POST(
-  request: Request,
+async function createNewMessage(body: any, currentUser: any) {
+  return prisma.message.create({
+    include: {
+      seen: true,
+      sender: true,
+    },
+    data: {
+      body: body.message,
+      image: body.image,
+      conversation: {
+        connect: { id: body.conversationId },
+      },
+      sender: {
+        connect: { id: currentUser.id },
+      },
+      seen: {
+        connect: {
+          id: currentUser.id,
+        },
+      },
+    },
+  });
+}
+
+async function updateConversation(
+  conversationId: string,
+  newMessageId: string
 ) {
+  return prisma.conversation.update({
+    where: {
+      id: conversationId,
+    },
+    data: {
+      lastMessageAt: new Date(),
+      messages: {
+        connect: {
+          id: newMessageId,
+        },
+      },
+    },
+    include: {
+      users: true,
+      messages: {
+        include: {
+          seen: true,
+        },
+      },
+    },
+  });
+}
+
+async function triggerPusherEvents(
+  conversationId: string,
+  newMessage: any,
+  lastMessage: any,
+  users: any[]
+) {
+  await pusherServer.trigger(conversationId, "messages:new", newMessage);
+
+  const lastMessageForUpdate = lastMessage || newMessage;
+
+  users.map((user) => {
+    pusherServer.trigger(user.email!, "conversation:update", {
+      id: conversationId,
+      messages: [lastMessageForUpdate],
+    });
+  });
+}
+
+export async function POST(request: Request) {
   try {
     const currentUser = await getCurrentUser();
     const body = await request.json();
-    const {
-      message,
-      image,
-      conversationId
-    } = body;
+    const { message, image, conversationId } = body;
 
     if (!currentUser?.id || !currentUser?.email) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const newMessage = await prisma.message.create({
-      include: {
-        seen: true,
-        sender: true
-      },
-      data: {
-        body: message,
-        image: image,
-        conversation: {
-          connect: { id: conversationId }
-        },
-        sender: {
-          connect: { id: currentUser.id }
-        },
-        seen: {
-          connect: {
-            id: currentUser.id
-          }
-        },
-      }
-    });
+    const newMessage = await createNewMessage(body, currentUser);
 
-    
-    const updatedConversation = await prisma.conversation.update({
-      where: {
-        id: conversationId
-      },
-      data: {
-        lastMessageAt: new Date(),
-        messages: {
-          connect: {
-            id: newMessage.id
-          }
-        }
-      },
-      include: {
-        users: true,
-        messages: {
-          include: {
-            seen: true
-          }
-        }
-      }
-    });
+    const updatedConversation = await updateConversation(
+      conversationId,
+      newMessage.id
+    );
 
-    await pusherServer.trigger(conversationId, 'messages:new', newMessage);
+    await triggerPusherEvents(
+      conversationId,
+      newMessage,
+      updatedConversation.messages.slice(-1)[0],
+      updatedConversation.users
+    );
 
-    const lastMessage = updatedConversation.messages[updatedConversation.messages.length - 1];
-
-    updatedConversation.users.map((user) => {
-      pusherServer.trigger(user.email!, 'conversation:update', {
-        id: conversationId,
-        messages: [lastMessage]
-      });
-    });
-
-    return NextResponse.json(newMessage)
+    return NextResponse.json(newMessage);
   } catch (error) {
-    console.log(error, 'ERROR_MESSAGES')
-    return new NextResponse('Error', { status: 500 });
+    console.error("Error_MESSAGES", error);
+
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError;
+      console.error("Axios error details:", axiosError.response?.data);
+    }
+
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

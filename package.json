@@ -28,7 +28,7 @@
     "next-auth": "^4.22.1",
     "next-cloudinary": "^4.4.0",
     "next-superjson-plugin": "^0.5.7",
-    "postcss": "8.4.21",
+    "postcss": "^8.4.35",
     "pusher": "^5.1.2",
     "pusher-js": "^8.0.2",
     "react": "18.2.0",
@@ -48,6 +48,7 @@
     "@tailwindcss/forms": "^0.5.3",
     "@types/bcrypt": "^5.0.0",
     "@types/lodash": "^4.14.194",
+    "encoding": "^0.1.13",
     "prisma": "^4.13.0"
   }
 }
