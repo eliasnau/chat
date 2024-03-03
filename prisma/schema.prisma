@@ -11,24 +11,28 @@ datasource db {
 }
 
 model User {
-  id              String @id @default(auto()) @map("_id") @db.ObjectId
-  name            String?
-  email           String?   @unique
-  emailVerified   DateTime?
-  image           String?
-  hashedPassword  String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               String        @id @default(auto()) @map("_id") @db.ObjectId
+  name             String?
+  email            String?       @unique
+  emailVerified    DateTime?
+  image            String?
+  hashedPassword   String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  conversationIds String[] @db.ObjectId
-  conversations Conversation[] @relation(fields: [conversationIds], references: [id])
+  conversationIds  String[]      @db.ObjectId
+  conversations    Conversation[] @relation(fields: [conversationIds], references: [id])
   
-  seenMessageIds String[] @db.ObjectId
-  seenMessages Message[] @relation("Seen", fields: [seenMessageIds], references: [id])
+  seenMessageIds   String[]      @db.ObjectId
+  seenMessages     Message[]     @relation("Seen", fields: [seenMessageIds], references: [id])
 
-  accounts Account[]
-  messages Message[]
+  accounts         Account[]
+  messages         Message[]
+
+  showOnlineStatus Boolean       @default(true)
+  sendReadReceipts Boolean       @default(true)
 }
+
 
 model Account {
   id String @id @default(auto()) @map("_id") @db.ObjectId
