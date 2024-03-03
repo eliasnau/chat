@@ -1,17 +1,17 @@
-import './globals.css'
-import AuthContext from './context/AuthContext'
-import ActiveStatus from './components/ActiveStatus'
-import ToasterContext from './context/ToasterContext'
+import "./globals.css";
+import AuthContext from "./context/AuthContext";
+import ActiveStatus from "./components/ActiveStatus";
+import ToasterContext from "./context/ToasterContext";
 
 export const metadata = {
-  title: 'Messenger',
-  description: 'Messenger Clone',
-}
+  title: "404Chat",
+  description: "404 Chat, the best chat",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
@@ -23,5 +23,5 @@ export default function RootLayout({
         </AuthContext>
       </body>
     </html>
-  )
+  );
 }
